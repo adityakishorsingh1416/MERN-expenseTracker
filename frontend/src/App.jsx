@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-// Default API base (use VITE_API_URL in your frontend .env to override)
+// API base URL
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export default function App() {
@@ -34,15 +34,17 @@ export default function App() {
     setError("");
 
     if (!form.title.trim() || !form.amount) {
-      setError("Please provide title and amount");
+      setError("Please provide title & amount");
       return;
     }
 
-    const payload = { title: form.title.trim(), amount: Number(form.amount), category: form.category };
-
     try {
-      const res = await axios.post(`${API_BASE}/expenses`, payload);
-      setExpenses((p) => [res.data, ...p]);
+      const res = await axios.post(`${API_BASE}/expenses`, {
+        ...form,
+        amount: Number(form.amount),
+      });
+
+      setExpenses([res.data, ...expenses]);
       setForm({ title: "", amount: "", category: "General" });
     } catch (err) {
       console.error(err);
@@ -53,98 +55,116 @@ export default function App() {
   const handleDelete = async (id) => {
     try {
       await axios.delete(`${API_BASE}/expenses/${id}`);
-      setExpenses((p) => p.filter((x) => x._id !== id));
+      setExpenses(expenses.filter((x) => x._id !== id));
     } catch (err) {
       console.error(err);
       setError("Failed to delete expense");
     }
   };
 
-  const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const total = expenses.reduce((a, b) => a + Number(b.amount || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
-      <div className="w-full max-w-4xl">
-        <header className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold">Expense Tracker</h1>
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Total</div>
-            <div className="text-xl font-bold">₹{total}</div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-5">
+      <div className="max-w-3xl mx-auto">
+
+        {/* HEADER */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white drop-shadow-lg">💸 Expense Tracker</h1>
+          <p className="text-white/80 mt-1 text-sm">
+            Track where your money goes — beautifully.
+          </p>
+        </div>
+
+        {/* TOTAL CARD */}
+        <div className="backdrop-blur-xl bg-white/20 p-5 rounded-2xl shadow-lg text-white mb-6 text-center">
+          <p className="text-sm tracking-wider opacity-80">Total Spent</p>
+          <h2 className="text-4xl font-semibold mt-1">₹{total}</h2>
+        </div>
+
+        {/* ADD FORM */}
+        <form
+          onSubmit={handleAdd}
+          className="backdrop-blur-xl bg-white/30 p-5 rounded-2xl shadow-lg mb-6 text-white"
+        >
+          <h2 className="text-lg font-semibold mb-4">➕ Add New Expense</h2>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <input
+              name="title"
+              placeholder="Title (e.g., Groceries)"
+              value={form.title}
+              onChange={handleChange}
+              className="flex-1 p-3 rounded-lg bg-white/20 text-white placeholder-white/60"
+            />
+
+            <input
+              name="amount"
+              type="number"
+              placeholder="Amount"
+              value={form.amount}
+              onChange={handleChange}
+              className="w-full sm:w-28 p-3 rounded-lg bg-white/20 text-white placeholder-white/60"
+            />
           </div>
-        </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <form onSubmit={handleAdd} className="col-span-1 md:col-span-2 bg-white p-4 rounded-2xl shadow-sm">
-            <h2 className="font-medium mb-3">Add Expense</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-3">
+            <input
+              name="category"
+              placeholder="Category (Food, Travel...)"
+              value={form.category}
+              onChange={handleChange}
+              className="flex-1 p-3 rounded-lg bg-white/20 text-white placeholder-white/60"
+            />
 
-            <div className="flex gap-2 mb-3">
-              <input
-                name="title"
-                value={form.title}
-                onChange={handleChange}
-                placeholder="Title (e.g. Groceries)"
-                className="flex-1 p-2 border rounded-lg"
-              />
-
-              <input
-                name="amount"
-                value={form.amount}
-                onChange={handleChange}
-                placeholder="Amount"
-                type="number"
-                className="w-28 p-2 border rounded-lg"
-              />
-            </div>
-
-            <div className="flex gap-2 items-center mb-3">
-              <input
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-                placeholder="Category"
-                className="flex-1 p-2 border rounded-lg"
-              />
-
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Add</button>
-            </div>
-
-            {error && <div className="text-red-500 text-sm">{error}</div>}
-          </form>
-
-          <div className="bg-white p-4 rounded-2xl shadow-sm">
-            <h3 className="font-medium mb-3">Summary</h3>
-            <div className="text-sm text-gray-600 mb-2">Expenses: {expenses.length}</div>
-            <div className="text-sm text-gray-600">Latest: {expenses[0] ? new Date(expenses[0].date).toLocaleString() : '—'}</div>
+            <button className="bg-white text-indigo-600 px-5 py-3 rounded-xl font-semibold shadow hover:bg-gray-100 transition">
+              Add Expense
+            </button>
           </div>
-        </section>
 
-        <section className="bg-white p-4 rounded-2xl shadow-sm">
-          <h2 className="font-medium mb-4">Expenses</h2>
+          {error && <p className="text-red-200 mt-2 text-sm">{error}</p>}
+        </form>
+
+        {/* EXPENSE LIST */}
+        <div className="backdrop-blur-xl bg-white/20 p-5 rounded-2xl shadow-lg text-white">
+          <h2 className="text-lg font-semibold mb-4">📋 Recent Expenses</h2>
 
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : !expenses.length ? (
-            <div className="text-center text-gray-500 py-8">No expenses yet. Add your first expense.</div>
+            <div className="text-center py-6">Loading...</div>
+          ) : expenses.length === 0 ? (
+            <div className="text-center py-6 text-white/70">No expenses added yet 🤷‍♂️</div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-4">
               {expenses.map((exp) => (
-                <li key={exp._id} className="flex items-center justify-between p-3 border rounded-lg">
+                <li
+                  key={exp._id}
+                  className="flex items-center justify-between bg-white/10 p-4 rounded-xl shadow-md"
+                >
                   <div>
-                    <div className="font-medium">{exp.title}</div>
-                    <div className="text-xs text-gray-500">{exp.category} • {new Date(exp.date).toLocaleString()}</div>
+                    <p className="font-semibold text-white text-lg">{exp.title}</p>
+                    <p className="text-sm text-white/70">
+                      {exp.category} • {new Date(exp.date).toLocaleString()}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="font-semibold">₹{exp.amount}</div>
-                    <button onClick={() => handleDelete(exp._id)} className="text-sm text-red-600">Delete</button>
+                  <div className="text-right">
+                    <p className="text-xl font-bold">₹{exp.amount}</p>
+                    <button
+                      onClick={() => handleDelete(exp._id)}
+                      className="text-red-300 hover:text-red-400 text-sm mt-1"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </div>
 
-        <footer className="text-center text-gray-500 mt-6">Built with MERN • Improve UI / Add charts next 🚀</footer>
+        <p className="text-center text-white/70 text-xs mt-6">
+          Built with MERN • Advanced UI • Responsive 🌈
+        </p>
       </div>
     </div>
   );
